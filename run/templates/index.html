@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Plant Watering Control</title>
+    <style>
+      body { font-family: Arial, Helvetica, sans-serif; max-width: 640px; margin: 40px auto; }
+      button { padding: 12px 18px; font-size: 16px; }
+      .status { margin-top: 20px; }
+      .badge { display: inline-block; padding: 6px 10px; border-radius: 6px; }
+      .watering { background: #e74c3c; color: white; }
+      .idle { background: #2ecc71; color: white; }
+    </style>
+  </head>
+  <body>
+    <h1>Plant Watering Control</h1>
+
+    <form method="post" action="/start">
+      <label for="seconds">Duration (seconds):</label>
+      <input id="seconds" name="seconds" type="number" value="10" min="1" style="width:80px; margin-left:8px;" />
+      <button type="submit">Start Watering</button>
+    </form>
+
+    <div class="status">
+      <strong>Status:</strong>
+      {% if state.watering %}
+        <span class="badge watering">Watering</span>
+      {% else %}
+        <span class="badge idle">Idle</span>
+      {% endif %}
+    </div>
+
+    <div style="margin-top:12px">
+      <strong>Last watered:</strong>
+      {% if state.last_watered %}
+        {{ state.last_watered }}
+      {% else %}
+        Never
+      {% endif %}
+    </div>
+  </body>
+</html>
