@@ -8,6 +8,7 @@ from gpiozero import InputDevice, Button
 from simple_pid import PID
 from signal import pause
 from classes.Hardware import MCP3008
+from spidev import SpiDev
 
 # WATERING_TIME must be in "00:00:00 PM" format
 WATERING_TIME = '11:59:50 AM'
@@ -18,7 +19,7 @@ RELAY = Hardware.Relay(12, False)
 SENSOR_PIN = 17
 sensor = InputDevice(SENSOR_PIN)
 
-pid = PID(-1.0, 0.0, 0.0, 0.1)  # setpoint for 50% duty cycle
+pid = PID(-5, -0.1, -0.1, setpoint=1200/4095, output_limits=(0, 1))  # setpoint for 50% duty cycle
 #duty_cycle = 0.1
 
 def water_plant(relay, seconds):
@@ -27,7 +28,8 @@ def water_plant(relay, seconds):
     cycle_time = 1  # 1 second cycle
     while time.time() - start_time < seconds:
         soil_moisture = read_sensor()  # scale to 0-100
-        duty_cycle = pid(soil_moisture)  # no feedback from sensor
+        duty_cycle = pid(soil_moisture/4095)  # no feedback from sensor
+        print(duty_cycle)
         on_time = duty_cycle * cycle_time
         off_time = (1 - duty_cycle) * cycle_time
         if on_time < 0:
@@ -38,9 +40,23 @@ def water_plant(relay, seconds):
         time.sleep(off_time)
     print("Watering is finished!")
 
+
+def water_plant_dynamic(relay, seconds):
+    print("Plant is being watered!")
+    start_time = time.time()
+    cycle_time = 5  # 1 second cycle
+    pid.sample_time = cycle_time 
+    while True:
+        print(pid(read_sensor()/4095))
+        time.sleep(cycle_time)
+
+
 def read_sensor():
-    soil_moisture = sensor.value
-    return soil_moisture
+    # create SPI connection
+    adc = MCP3008()
+    data = adc.read(0)
+    print(data)
+    return data
 
 def main():
     while True:
@@ -50,18 +66,17 @@ def main():
         if answer.lower() == 'y' and soil_moisture == 1:
             print(f"Soil moisture sensor reading: {soil_moisture}")
             water_plant(RELAY, SECONDS_TO_WATER)
-            #RELAY.on()
-            #time.sleep(SECONDS_TO_WATER)
 
 def button_pressed():
     global i
+    water_plant(RELAY, SECONDS_TO_WATER)
     time.sleep(0.25)
     if i % 2 == 1:
         print("Button pressed: Starting watering cycle.")
-        RELAY.on()
+        #RELAY.on()
     else:
         print("Button pressed: Stopping watering cycle.")
-        RELAY.off()
+        #RELAY.off()
     i += 1
 
 i = 1
