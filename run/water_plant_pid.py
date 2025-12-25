@@ -7,6 +7,7 @@ import ssl
 from gpiozero import InputDevice, Button
 from simple_pid import PID
 from signal import pause
+from classes.Hardware import MCP3008
 
 # WATERING_TIME must be in "00:00:00 PM" format
 WATERING_TIME = '11:59:50 AM'
@@ -18,14 +19,14 @@ SENSOR_PIN = 17
 sensor = InputDevice(SENSOR_PIN)
 
 pid = PID(-1.0, 0.0, 0.0, 0.1)  # setpoint for 50% duty cycle
-duty_cycle = 0.1
+#duty_cycle = 0.1
 
 def water_plant(relay, seconds):
     print("Plant is being watered!")
     start_time = time.time()
-    cycle_time = 1.0  # 1 second cycle
+    cycle_time = 1  # 1 second cycle
     while time.time() - start_time < seconds:
-        soil_moisture = sensor.value  # scale to 0-100
+        soil_moisture = read_sensor()  # scale to 0-100
         duty_cycle = pid(soil_moisture)  # no feedback from sensor
         on_time = duty_cycle * cycle_time
         off_time = (1 - duty_cycle) * cycle_time
@@ -53,9 +54,18 @@ def main():
             #time.sleep(SECONDS_TO_WATER)
 
 def button_pressed():
-    print("Button pressed! Starting watering process.")
-    time.sleep(2)  # Debounce delay
+    global i
+    time.sleep(0.25)
+    if i % 2 == 1:
+        print("Button pressed: Starting watering cycle.")
+        RELAY.on()
+    else:
+        print("Button pressed: Stopping watering cycle.")
+        RELAY.off()
+    i += 1
 
-
+i = 1
 if __name__ == "__main__":
-    main()
+    button = Button(2)
+    button.when_pressed = button_pressed
+    pause()
